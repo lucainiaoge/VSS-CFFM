@@ -2189,6 +2189,10 @@ class CustomDataset_video2(Dataset):
             # clips_img.append(results['img'])
             # clips_target.append(results['gt_semantic_seg'])
             # clips_meta.append(results['img_metas'])
+
+
+            print(img_name, img_dir, results) # debug
+            
             self.pipeline_load(results)
             results_all.append(results)
             img_info_clips.append(results['img_info'])
@@ -2912,6 +2916,9 @@ class CustomDataset_video2_vps(Dataset):
             # clips_img.append(results['img'])
             # clips_target.append(results['gt_semantic_seg'])
             # clips_meta.append(results['img_metas'])
+
+            print(img_name, img_dir, results) # debug
+
             self.pipeline_load(results)
             results_all.append(results)
             img_info_clips.append(results['img_info'])
