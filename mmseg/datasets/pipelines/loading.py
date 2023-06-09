@@ -1,6 +1,7 @@
 import os.path as osp
 
 import mmcv
+from mmcv.utils import print_log
 import numpy as np
 
 from ..builder import PIPELINES
