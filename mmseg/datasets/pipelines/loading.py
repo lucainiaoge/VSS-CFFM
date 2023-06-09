@@ -56,14 +56,11 @@ class LoadImageFromFile(object):
         if results.get('img_prefix') is not None:
             filename = osp.join(results['img_prefix'],
                                 results['img_info']['filename'])
-
-            print_log("Trying to load image", filename) # debug
+            # print_log("Trying to load image", filename) # debug
         else:
             filename = results['img_info']['filename']
 
         img_bytes = self.file_client.get(filename)
-        if img_bytes is None:
-            print_log("Fail in loading imgbyte", filename) # debug
 
         img = mmcv.imfrombytes(
             img_bytes, flag=self.color_type, backend=self.imdecode_backend)
