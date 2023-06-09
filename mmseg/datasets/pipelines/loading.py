@@ -60,9 +60,16 @@ class LoadImageFromFile(object):
             print_log("Trying to load image", filename) # debug
         else:
             filename = results['img_info']['filename']
+
         img_bytes = self.file_client.get(filename)
+        if img_bytes is None:
+            print_log("Fail in loading imgbyte", filename) # debug
+
         img = mmcv.imfrombytes(
             img_bytes, flag=self.color_type, backend=self.imdecode_backend)
+        if img is None:
+            print_log("Fail in loading img", filename) # debug
+
         if self.to_float32:
             img = img.astype(np.float32)
         # print("img.shape: ", img.shape)
