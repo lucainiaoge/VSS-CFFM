@@ -55,6 +55,8 @@ class LoadImageFromFile(object):
         if results.get('img_prefix') is not None:
             filename = osp.join(results['img_prefix'],
                                 results['img_info']['filename'])
+
+            print_log("Trying to load image", filename) # debug
         else:
             filename = results['img_info']['filename']
         img_bytes = self.file_client.get(filename)
