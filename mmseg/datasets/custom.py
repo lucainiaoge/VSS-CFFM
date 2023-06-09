@@ -1990,7 +1990,7 @@ class CustomDataset_video2(Dataset):
         # self.flip_video=False
         self.flip_video=True
         print("flip video: ",self.flip_video)
-        print("imgdic: ", self.imgdic) #debug
+        # print("imgdic: ", self.imgdic) #debug
 
         # print(self.label_map)
         # print(self.CLASSES, self.PALETTE)
@@ -2192,8 +2192,8 @@ class CustomDataset_video2(Dataset):
             # clips_target.append(results['gt_semantic_seg'])
             # clips_meta.append(results['img_metas'])
 
-            print("img_name", img_name, ) # debug
-            print("img_dir", img_dir) # debug
+            print_log("img_name", img_name, ) # debug
+            print_log("img_dir", img_dir) # debug
 
             self.pipeline_load(results)
             results_all.append(results)
