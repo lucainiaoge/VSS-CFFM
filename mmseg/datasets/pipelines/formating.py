@@ -291,10 +291,12 @@ class DefaultFormatBundle_clips(object):
                     im = np.expand_dims(im, -1)
                 img = np.ascontiguousarray(im.transpose(2, 0, 1))
                 img_all.append(to_tensor(img))
+
+            print_log(len(img_all))
             img_all=torch.stack(img_all)
             results['img'] = DC(img_all, stack=True)
 
-            print_log(len(img_all))
+            
 
         if 'gt_semantic_seg' in results:
             # convert to long
@@ -305,6 +307,8 @@ class DefaultFormatBundle_clips(object):
                                                          ...].astype(np.int64))
                     
                 gt_seg_all.append(gt_one)
+
+            print_log(len(gt_seg_all))
             gt_seg_all=torch.stack(gt_seg_all)
             results['gt_semantic_seg']=DC(gt_seg_all, stack=True)
         return results
