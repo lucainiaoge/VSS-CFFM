@@ -4,6 +4,7 @@ import mmcv
 import numpy as np
 import torch
 from mmcv.parallel import DataContainer as DC
+from mmcv.utils import print_log
 
 from ..builder import PIPELINES
 
@@ -283,6 +284,7 @@ class DefaultFormatBundle_clips(object):
         if 'img' in results:
             assert isinstance(results['img'], list)
             img_all=[]
+
             for im in results['img']:
                 # img = results['img']
                 if len(im.shape) < 3:
@@ -291,6 +293,9 @@ class DefaultFormatBundle_clips(object):
                 img_all.append(to_tensor(img))
             img_all=torch.stack(img_all)
             results['img'] = DC(img_all, stack=True)
+
+            print_log(len(img_all))
+
         if 'gt_semantic_seg' in results:
             # convert to long
             gt_seg_all=[]
