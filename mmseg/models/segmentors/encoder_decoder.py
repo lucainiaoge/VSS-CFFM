@@ -8,6 +8,7 @@ from .. import builder
 from ..builder import SEGMENTORS
 from .base import BaseSegmentor
 
+from mmcv.utils import print_log
 
 @SEGMENTORS.register_module()
 class EncoderDecoder(BaseSegmentor):
@@ -149,6 +150,8 @@ class EncoderDecoder(BaseSegmentor):
         Returns:
             dict[str, Tensor]: a dictionary of loss components
         """
+
+        print_log(img.shape)
 
         x = self.extract_feat(img)
 
