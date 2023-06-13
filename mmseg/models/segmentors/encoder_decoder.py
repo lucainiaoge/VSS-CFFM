@@ -151,8 +151,6 @@ class EncoderDecoder(BaseSegmentor):
             dict[str, Tensor]: a dictionary of loss components
         """
 
-        print_log(img.shape)
-
         x = self.extract_feat(img)
 
         losses = dict()
@@ -362,6 +360,9 @@ class EncoderDecoder_clips(BaseSegmentor):
 
     def extract_feat(self, img):
         """Extract features from images."""
+
+        print_log(img.shape)
+        
         x = self.backbone(img)
         if self.with_neck:
             x = self.neck(x)
