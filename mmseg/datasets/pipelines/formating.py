@@ -296,15 +296,12 @@ class DefaultFormatBundle_clips(object):
             img_all=torch.stack(img_all)
             results['img'] = DC(img_all, stack=True)
 
-            
-
         if 'gt_semantic_seg' in results:
             # convert to long
             gt_seg_all=[]
             assert isinstance(results['gt_semantic_seg'], list)
             for gt in results['gt_semantic_seg']:
-                gt_one= to_tensor(gt[None,
-                                                         ...].astype(np.int64))
+                gt_one= to_tensor(gt[None,...].astype(np.int64))
                     
                 gt_seg_all.append(gt_one)
 
