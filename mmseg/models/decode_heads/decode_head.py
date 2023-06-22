@@ -826,11 +826,13 @@ class BaseDecodeHead_clips_flow(nn.Module, metaclass=ABCMeta):
             seg_logit_ori,
             seg_label_ori,
             weight=seg_weight,
-            ignore_index=self.ignore_index)+self.loss_decode(
+            ignore_index=self.ignore_index
+        ) + self.loss_decode(
             seg_logit_lastframe,
             seg_label_lastframe,
             weight=seg_weight,
-            ignore_index=self.ignore_index)
+            ignore_index=self.ignore_index
+        )
         loss['acc_seg'] = accuracy(seg_logit_ori, seg_label_ori)
         return loss
 
