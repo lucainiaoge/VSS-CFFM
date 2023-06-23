@@ -116,10 +116,10 @@ class CFFMHead_clips_resize1_8(BaseDecodeHead_clips_flow):
         ############## MLP decoder on C1-C4 ###########
         n, _, h, w = c4.shape
 
-        print("c1.shape", c1.shape)
-        print("c2.shape", c2.shape)
-        print("c3.shape", c3.shape)
-        print("c4.shape", c4.shape)
+        # print("c1.shape", c1.shape)
+        # print("c2.shape", c2.shape)
+        # print("c3.shape", c3.shape)
+        # print("c4.shape", c4.shape)
 
         _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
         _c4 = resize(_c4, size=c1.size()[2:],mode='bilinear',align_corners=False)
@@ -150,7 +150,7 @@ class CFFMHead_clips_resize1_8(BaseDecodeHead_clips_flow):
 
         _c_further=_c.reshape(batch_size, num_clips, -1, h2, w2)
         
-        print("_c_further.shape", _c_further.shape)
+        # print("_c_further.shape", _c_further.shape)
         # exit()
         _c2=self.decoder_focal(_c_further)
         # _c_further=_c_further.permute(0,2,1,3,4)

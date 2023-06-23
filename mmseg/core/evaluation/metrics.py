@@ -205,21 +205,24 @@ def total_intersect_and_union(results,
     total_area_pred_label = np.zeros((num_classes, ), dtype=np.float)
     total_area_label = np.zeros((num_classes, ), dtype=np.float)
     # added by guolei
-    evaluator = Evaluator(num_classes)
-    evaluator.reset()
+    # evaluator = Evaluator(num_classes)
+    # evaluator.reset()
     for i in range(num_imgs):
+        # area_intersect, area_union, area_pred_label, area_label = \
+        #     intersect_and_union2(results[i], gt_seg_maps[i], num_classes,
+        #                         ignore_index, label_map, reduce_zero_label, evaluator)
         area_intersect, area_union, area_pred_label, area_label = \
-            intersect_and_union2(results[i], gt_seg_maps[i], num_classes,
-                                ignore_index, label_map, reduce_zero_label, evaluator)
+            intersect_and_union(results[i], gt_seg_maps[i], num_classes,
+                                ignore_index, label_map, reduce_zero_label)
         total_area_intersect += area_intersect
         total_area_union += area_union
         total_area_pred_label += area_pred_label
         total_area_label += area_label
 
-    mIoU = evaluator.Mean_Intersection_over_Union()
-    FWIoU = evaluator.Frequency_Weighted_Intersection_over_Union()
-    print("mIoU : ", mIoU)
-    print("FWIoU : ", FWIoU)
+    # mIoU = evaluator.Mean_Intersection_over_Union()
+    # FWIoU = evaluator.Frequency_Weighted_Intersection_over_Union()
+    # print("mIoU : ", mIoU)
+    # print("FWIoU : ", FWIoU)
     return total_area_intersect, total_area_union, \
         total_area_pred_label, total_area_label
 
