@@ -50,6 +50,12 @@ def window_partition_noreshape(x, window_size):
         windows: (B, num_windows_h, num_windows_w, window_size, window_size, C)
     """
     B, H, W, C = x.shape
+    # pad feature maps to multiples of window size
+    pad_l = pad_t = 0
+    pad_r = (window_size - W % window_size) % window_size
+    pad_b = (window_size - H % window_size) % window_size
+    x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
+    B, H, W, C = x.shape
     x = x.view(B, H // window_size, window_size, W // window_size, window_size, C)
     windows = x.permute(0, 1, 3, 2, 4, 5).contiguous()
     return windows
