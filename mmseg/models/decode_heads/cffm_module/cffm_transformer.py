@@ -937,11 +937,11 @@ class CffmTransformerBlock3d3(nn.Module):
         # exit()
 
         # pad feature maps to multiples of window size
-        # pad_l = pad_t = 0
-        # pad_r = (self.window_size - W0 % self.window_size) % self.window_size
-        # pad_b = (self.window_size - H0 % self.window_size) % self.window_size
-        # if pad_r > 0 or pad_b > 0:
-        #     x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
+        pad_l = pad_t = 0
+        pad_r = (self.window_size - W0 % self.window_size) % self.window_size
+        pad_b = (self.window_size - H0 % self.window_size) % self.window_size
+        if pad_r > 0 or pad_b > 0:
+            x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
         
         B, H, W, C = x.shape     ## B=B0*D0
 
