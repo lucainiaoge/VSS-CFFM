@@ -220,177 +220,80 @@ def get_relative_position_index3d(q_windows, k_windows, num_clips):
 
 class WindowAttention3d3(nn.Module):
     r""" Window based multi-head self attention (W-MSA) module with relative position bias.
+    It supports both of shifted and non-shifted window.
 
     Args:
         dim (int): Number of input channels.
-        expand_size (int): The expand size at focal level 1.
         window_size (tuple[int]): The height and width of the window.
-        focal_window (int): Focal region size.
-        focal_level (int): Focal attention level.
         num_heads (int): Number of attention heads.
         qkv_bias (bool, optional):  If True, add a learnable bias to query, key, value. Default: True
         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
         attn_drop (float, optional): Dropout ratio of attention weight. Default: 0.0
-        proj_drop (float, optional): Dropout ratio of output. Default: 0.0 
-        pool_method (str): window pooling method. Default: none
+        proj_drop (float, optional): Dropout ratio of output. Default: 0.0
     """
 
-    def __init__(self, dim, expand_size, window_size, focal_window, focal_level, num_heads, 
-                    qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0., pool_method="none", focal_l_clips=[7,1,2], focal_kernel_clips=[7,5,3]):
+    def __init__(self, dim, input_resolution, expand_size, shift_size, window_size, window_size_glo, focal_window,
+                 focal_level, num_heads, qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0., pool_method="none",
+                 focal_l_clips=None, focal_kernel_clips=None, topK=64):
 
         super().__init__()
         self.dim = dim
+        self.shift_size = shift_size
         self.expand_size = expand_size
         self.window_size = window_size  # Wh, Ww
+        self.window_size_glo = window_size_glo
         self.pool_method = pool_method
+        self.input_resolution = input_resolution  # NWh, NWw
         self.num_heads = num_heads
         head_dim = dim // num_heads
         self.scale = qk_scale or head_dim ** -0.5
         self.focal_level = focal_level
         self.focal_window = focal_window
-
-        # define a parameter table of relative position bias for each window
-        self.relative_position_bias_table = nn.Parameter(
-            torch.zeros((2 * window_size[0] - 1) * (2 * window_size[1] - 1), num_heads))  # 2*Wh-1 * 2*Ww-1, nH
-
-        # get pair-wise relative position index for each token inside the window
-        coords_h = torch.arange(self.window_size[0])
-        coords_w = torch.arange(self.window_size[1])
-        coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, Wh, Ww
-        coords_flatten = torch.flatten(coords, 1)  # 2, Wh*Ww
-        relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]  # 2, Wh*Ww, Wh*Ww
-        relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Wh*Ww, Wh*Ww, 2
-        relative_coords[:, :, 0] += self.window_size[0] - 1  # shift to start from 0
-        relative_coords[:, :, 1] += self.window_size[1] - 1
-        relative_coords[:, :, 0] *= 2 * self.window_size[1] - 1
-        relative_position_index = relative_coords.sum(-1)  # Wh*Ww, Wh*Ww
-        self.register_buffer("relative_position_index", relative_position_index)
-
-        num_clips=4
-        # # define a parameter table of relative position bias
-        # self.relative_position_bias_table = nn.Parameter(
-        #     torch.zeros((2 * num_clips - 1) * (2 * window_size[0] - 1) * (2 * window_size[1] - 1), num_heads))  # 2*Wd-1 * 2*Wh-1 * 2*Ww-1, nH
-
-        # # get pair-wise relative position index for each token inside the window
-        # coords_d = torch.arange(num_clips)
-        # coords_h = torch.arange(self.window_size[0])
-        # coords_w = torch.arange(self.window_size[1])
-        # coords = torch.stack(torch.meshgrid(coords_d, coords_h, coords_w))  # 3, Wd, Wh, Ww
-        # coords_flatten = torch.flatten(coords, 1)  # 3, Wd*Wh*Ww
-        # relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]  # 3, Wd*Wh*Ww, Wd*Wh*Ww
-        # relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Wd*Wh*Ww, Wd*Wh*Ww, 3
-        # relative_coords[:, :, 0] += num_clips - 1  # shift to start from 0
-        # relative_coords[:, :, 1] += self.window_size[0] - 1
-        # relative_coords[:, :, 2] += self.window_size[1] - 1
-
-        # relative_coords[:, :, 0] *= (2 * self.window_size[0] - 1) * (2 * self.window_size[1] - 1)
-        # relative_coords[:, :, 1] *= (2 * self.window_size[1] - 1)
-        # relative_position_index = relative_coords.sum(-1)  # Wd*Wh*Ww, Wd*Wh*Ww
-        # self.register_buffer("relative_position_index", relative_position_index)
-
-
-        if self.expand_size > 0 and focal_level > 0:
-            # define a parameter table of position bias between window and its fine-grained surroundings
-            self.window_size_of_key = self.window_size[0] * self.window_size[1] if self.expand_size == 0 else \
-                (4 * self.window_size[0] * self.window_size[1] - 4 * (self.window_size[0] -  self.expand_size) * (self.window_size[0] -  self.expand_size))        
-            self.relative_position_bias_table_to_neighbors = nn.Parameter(
-                torch.zeros(1, num_heads, self.window_size[0] * self.window_size[1], self.window_size_of_key))  # Wh*Ww, nH, nSurrounding
-            trunc_normal_(self.relative_position_bias_table_to_neighbors, std=.02)
-
-            # get mask for rolled k and rolled v
-            mask_tl = torch.ones(self.window_size[0], self.window_size[1]); mask_tl[:-self.expand_size, :-self.expand_size] = 0
-            mask_tr = torch.ones(self.window_size[0], self.window_size[1]); mask_tr[:-self.expand_size, self.expand_size:] = 0
-            mask_bl = torch.ones(self.window_size[0], self.window_size[1]); mask_bl[self.expand_size:, :-self.expand_size] = 0
-            mask_br = torch.ones(self.window_size[0], self.window_size[1]); mask_br[self.expand_size:, self.expand_size:] = 0
-            mask_rolled = torch.stack((mask_tl, mask_tr, mask_bl, mask_br), 0).flatten(0)
-            self.register_buffer("valid_ind_rolled", mask_rolled.nonzero().view(-1))
-
-        if pool_method != "none" and focal_level > 1:
-            self.relative_position_bias_table_to_windows = nn.ParameterList()
-            self.relative_position_bias_table_to_windows_clips = nn.ParameterList()
-            self.unfolds = nn.ModuleList()
-            self.unfolds_clips=nn.ModuleList()
-
-            # build relative position bias between local patch and pooled windows
-            for k in range(focal_level-1):
-                stride = 2**k    
-                kernel_size = 2*(self.focal_window // 2) + 2**k + (2**k-1)
-                # define unfolding operations                
-                self.unfolds += [nn.Unfold(
-                    kernel_size=(kernel_size, kernel_size), 
-                    stride=stride, padding=kernel_size // 2)
-                ]
-
-                # define relative position bias table
-                relative_position_bias_table_to_windows = nn.Parameter(
-                    torch.zeros(
-                        self.num_heads,
-                        (self.window_size[0] + self.focal_window + 2**k - 2) * (self.window_size[1] + self.focal_window + 2**k - 2), 
-                        )
-                )
-                trunc_normal_(relative_position_bias_table_to_windows, std=.02)
-                self.relative_position_bias_table_to_windows.append(relative_position_bias_table_to_windows)
-
-                # define relative position bias index
-                relative_position_index_k = get_relative_position_index(self.window_size, to_2tuple(self.focal_window + 2**k - 1))
-                # relative_position_index_k = get_relative_position_index3d(self.window_size, to_2tuple(self.focal_window + 2**k - 1), num_clips)
-                self.register_buffer("relative_position_index_{}".format(k), relative_position_index_k)
-
-                # define unfolding index for focal_level > 0
-                if k > 0:
-                    mask = torch.zeros(kernel_size, kernel_size); mask[(2**k)-1:, (2**k)-1:] = 1
-                    self.register_buffer("valid_ind_unfold_{}".format(k), mask.flatten(0).nonzero().view(-1))
-
-            for k in range(len(focal_l_clips)):
-                # kernel_size=focal_kernel_clips[k]
-                focal_l_big_flag=False
-                if focal_l_clips[k]>self.window_size[0]:
-                    stride=1
-                    padding=0
-                    kernel_size=focal_kernel_clips[k]
-                    kernel_size_true=kernel_size
-                    focal_l_big_flag=True
-                    # stride=math.ceil(self.window_size/focal_l_clips[k])
-                    # padding=(kernel_size-stride)/2
-                else:
-                    stride = focal_l_clips[k] 
-                    # kernel_size   
-                    # kernel_size = 2*(focal_kernel_clips[k]// 2) + 2**focal_l_clips[k] + (2**focal_l_clips[k]-1)
-                    kernel_size = focal_kernel_clips[k]     ## kernel_size must be jishu 
-                    assert kernel_size%2==1
-                    padding=kernel_size // 2
-                    # kernel_size_true=focal_kernel_clips[k]+2**focal_l_clips[k]-1
-                    kernel_size_true=kernel_size
-                # stride=math.ceil(self.window_size/focal_l_clips[k])
-                
-                self.unfolds_clips += [nn.Unfold(
-                    kernel_size=(kernel_size, kernel_size), 
-                    stride=stride,
-                    padding=padding)
-                ]
-                relative_position_bias_table_to_windows = nn.Parameter(
-                    torch.zeros(
-                        self.num_heads,
-                        (self.window_size[0] + kernel_size_true - 1) * (self.window_size[0] + kernel_size_true - 1), 
-                        )
-                )
-                trunc_normal_(relative_position_bias_table_to_windows, std=.02)
-                self.relative_position_bias_table_to_windows_clips.append(relative_position_bias_table_to_windows)
-                relative_position_index_k = get_relative_position_index(self.window_size, to_2tuple(kernel_size_true))
-                self.register_buffer("relative_position_index_clips_{}".format(k), relative_position_index_k)
-                # if (not focal_l_big_flag) and  focal_l_clips[k]>0:
-                #     mask = torch.zeros(kernel_size, kernel_size); mask[(2**focal_l_clips[k])-1:, (2**focal_l_clips[k])-1:] = 1
-                #     self.register_buffer("valid_ind_unfold_clips_{}".format(k), mask.flatten(0).nonzero().view(-1))
-
-
+        self.nWh, self.nWw = self.input_resolution[0] // self.window_size[0], self.input_resolution[1] // \
+                             self.window_size[1]
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
         self.softmax = nn.Softmax(dim=-1)
-        self.focal_l_clips=focal_l_clips
-        self.focal_kernel_clips=focal_kernel_clips
+
+        self.topK = topK
+        coords_h_window = torch.arange(self.window_size[0]) - self.window_size[0] // 2
+        coords_w_window = torch.arange(self.window_size[1]) - self.window_size[1] // 2
+        coords_window = torch.stack(torch.meshgrid([coords_h_window, coords_w_window]), dim=-1)  # 2, Wh_q, Ww_q
+        self.register_buffer("window_coords", coords_window)
+
+        self.coord2rpb_all = nn.ModuleList()
+
+        self.topks = []
+        for k in range(self.focal_level):
+            if k == 0:
+                range_h = self.input_resolution[0]
+                range_w = self.input_resolution[1]
+            else:
+                range_h = self.nWh
+                range_w = self.nWw
+
+            # build relative position range
+            topk_closest_indice, topk_closest_coord, topK_updated = get_topk_closest_indice(
+                (self.nWh, self.nWw), (range_h, range_w), self.topK)
+            self.topks.append(topK_updated)
+
+            if k > 0:
+                # scaling the coordinates for pooled windows
+                topk_closest_coord = topk_closest_coord * self.window_size[0]
+            topk_closest_coord_window = topk_closest_coord.unsqueeze(1) + coords_window.view(-1, 2)[None, :, None, :]
+
+            self.register_buffer("topk_cloest_indice_{}".format(k), topk_closest_indice)
+            self.register_buffer("topk_cloest_coords_{}".format(k), topk_closest_coord_window)
+
+            coord2rpb = nn.Sequential(
+                nn.Linear(2, head_dim),
+                nn.ReLU(inplace=True),
+                nn.Linear(head_dim, self.num_heads)
+            )
+            self.coord2rpb_all.append(coord2rpb)
 
     def forward(self, x_all, mask_all=None, batch_size=None, num_clips=None):
         """
@@ -405,6 +308,89 @@ class WindowAttention3d3(nn.Module):
         assert B0==batch_size
         qkv = self.qkv(x).reshape(B0, nH, nW, 3, C).permute(3, 0, 1, 2, 4).contiguous()
         q, k, v = qkv[0], qkv[1], qkv[2]  # B0, nH, nW, C
+
+        # partition q map
+        q_windows = window_partition(q, self.window_size[0]).view(
+            -1, self.window_size[0] * self.window_size[0], self.num_heads, C // self.num_heads
+        ).transpose(1, 2)
+
+        k_all = []
+        v_all = []
+        topKs = []
+        topk_rpbs = []
+        for l_k in range(self.focal_level):
+            topk_closest_indice = getattr(self, "topk_cloest_indice_{}".format(l_k))
+            print("topk_closest_indice.shape", topk_closest_indice.shape)
+
+            topk_indice_k = topk_closest_indice.view(1, -1).repeat(B0, 1)
+            print("topk_indice_k.shape", topk_indice_k.shape)
+
+            topk_coords_k = getattr(self, "topk_cloest_coords_{}".format(l_k))
+            window_coords = getattr(self, "window_coords")
+
+            topk_rpb_k = self.coord2rpb_all[l_k](topk_coords_k)
+            topk_rpbs.append(topk_rpb_k)
+
+            if l_k == 0:
+                k_k = k.view(B0, -1, self.num_heads, C // self.num_heads)
+                v_k = v.view(B0, -1, self.num_heads, C // self.num_heads)
+            else:
+                x_k = x_all[l_k]
+                qkv_k = self.qkv(x_k).view(B0, -1, 3, self.num_heads, C // self.num_heads)
+                k_k, v_k = qkv_k[:, :, 1], qkv_k[:, :, 2]
+
+            k_k_selected = torch.gather(k_k, 1, topk_indice_k.view(B0, -1, 1).unsqueeze(-1).repeat(1, 1, self.num_heads,
+                                                                                                  C // self.num_heads))
+            v_k_selected = torch.gather(v_k, 1, topk_indice_k.view(B0, -1, 1).unsqueeze(-1).repeat(1, 1, self.num_heads,
+                                                                                                  C // self.num_heads))
+
+            print("k_k_selected.shape after gather", k_k_selected.shape)
+
+            k_k_selected = k_k_selected.view(
+                (B0,) + topk_closest_indice.shape + (self.num_heads, C // self.num_heads,)).transpose(2, 3)
+            v_k_selected = v_k_selected.view(
+                (B0,) + topk_closest_indice.shape + (self.num_heads, C // self.num_heads,)).transpose(2, 3)
+
+            print("k_k_selected.shape second", k_k_selected.shape)
+
+            k_all.append(k_k_selected.view(-1, self.num_heads, topk_closest_indice.shape[1], C // self.num_heads))
+            v_all.append(v_k_selected.view(-1, self.num_heads, topk_closest_indice.shape[1], C // self.num_heads))
+            topKs.append(topk_closest_indice.shape[1])
+
+            print("k_k_selected.shape last", k_k_selected.view(-1, self.num_heads, topk_closest_indice.shape[1], C // self.num_heads).shape)
+
+        k_all = torch.cat(k_all, 2)
+        print("k_all.shape", k_all.shape)
+
+        v_all = torch.cat(v_all, 2)
+
+        N = k_all.shape[-2]
+        q_windows = q_windows * self.scale
+
+        print("Before attn!")
+        print("q_windows.shape", q_windows.shape)
+        print("k_all.shape", k_all.shape)
+        attn = (q_windows @ k_all.transpose(-2,
+                                            -1))  # B*nW, nHead, window_size*window_size, focal_window_size*focal_window_size
+        window_area = self.window_size[0] * self.window_size[1]
+        window_area_whole = k_all.shape[2]
+
+        print("attn.shape", attn.shape)
+
+        topk_rpb_cat = torch.cat(topk_rpbs, 2).permute(0, 3, 1, 2).contiguous().unsqueeze(0).repeat(B, 1, 1, 1, 1).view(
+            attn.shape)
+        attn = attn + topk_rpb_cat
+
+        attn = self.softmax(attn)
+        attn = self.attn_drop(attn)
+
+        x = (attn @ v_all).transpose(1, 2).flatten(2)
+        x = self.proj(x)
+        x = self.proj_drop(x)
+        return x
+
+
+
 
         # partition q map
         # print("x.shape: ", x.shape)
@@ -848,10 +834,17 @@ class CffmTransformerBlock3d3(nn.Module):
 
         self.norm1 = norm_layer(dim)
 
+        # self.attn = WindowAttention3d3(
+        #     dim, expand_size=self.expand_size, window_size=to_2tuple(self.window_size),
+        #     focal_window=focal_window, focal_level=focal_level, num_heads=num_heads,
+        #     qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop, pool_method=pool_method, focal_l_clips=focal_l_clips, focal_kernel_clips=focal_kernel_clips)
+
         self.attn = WindowAttention3d3(
-            dim, expand_size=self.expand_size, window_size=to_2tuple(self.window_size), 
-            focal_window=focal_window, focal_level=focal_level, num_heads=num_heads,
-            qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop, pool_method=pool_method, focal_l_clips=focal_l_clips, focal_kernel_clips=focal_kernel_clips)
+            dim, input_resolution=input_resolution, expand_size=self.expand_size, shift_size=self.shift_size, window_size=to_2tuple(self.window_size),
+            window_size_glo=to_2tuple(self.window_size_glo), focal_window=focal_window,
+            focal_level=self.focal_level, num_heads=num_heads,
+            qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop,
+            pool_method=pool_method, focal_l_clips=focal_l_clips, focal_kernel_clips=focal_kernel_clips, topK=topK,)
 
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         self.norm2 = norm_layer(dim)
@@ -904,11 +897,11 @@ class CffmTransformerBlock3d3(nn.Module):
         # exit()
 
         # pad feature maps to multiples of window size
-        pad_l = pad_t = 0
-        pad_r = (self.window_size - W0 % self.window_size) % self.window_size
-        pad_b = (self.window_size - H0 % self.window_size) % self.window_size
-        if pad_r > 0 or pad_b > 0:
-            x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
+        # pad_l = pad_t = 0
+        # pad_r = (self.window_size - W0 % self.window_size) % self.window_size
+        # pad_b = (self.window_size - H0 % self.window_size) % self.window_size
+        # if pad_r > 0 or pad_b > 0:
+        #     x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
         
         B, H, W, C = x.shape     ## B=B0*D0
 
@@ -1048,7 +1041,7 @@ class CffmTransformerBlock3d3(nn.Module):
         else:
             x = shifted_x
         # x = x[:, :self.input_resolution[0], :self.input_resolution[1]].contiguous().view(B, -1, C)
-        x = x[:, :H0, :W0].contiguous().view(B0, -1, C)
+        x = x.view(B0, H0 * W0, C)
 
         # FFN
         # x = shortcut + self.drop_path(x if (not self.use_layerscale) else (self.gamma_1 * x))

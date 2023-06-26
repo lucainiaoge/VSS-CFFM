@@ -105,7 +105,7 @@ class CFFMHead_clips_resize1_8(BaseDecodeHead_clips_flow):
                focal_l_clips=[1,2,3],
                focal_kernel_clips=[7,5,3])
 
-        print(self.decoder_focal.blocks[0].focal_kernel_clips)
+        # print(self.decoder_focal.blocks[0].focal_kernel_clips)
 
     def forward(self, inputs, batch_size=None, num_clips=None, imgs=None):
         if self.training:
@@ -116,10 +116,10 @@ class CFFMHead_clips_resize1_8(BaseDecodeHead_clips_flow):
         ############## MLP decoder on C1-C4 ###########
         n, _, h, w = c4.shape
 
-        print("c1.shape", c1.shape)
-        print("c2.shape", c2.shape)
-        print("c3.shape", c3.shape)
-        print("c4.shape", c4.shape)
+        # print("c1.shape", c1.shape)
+        # print("c2.shape", c2.shape)
+        # print("c3.shape", c3.shape)
+        # print("c4.shape", c4.shape)
 
         _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
         _c4 = resize(_c4, size=c1.size()[2:],mode='bilinear',align_corners=False)
