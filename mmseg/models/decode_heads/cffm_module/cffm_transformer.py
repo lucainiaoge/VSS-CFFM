@@ -218,6 +218,37 @@ def get_relative_position_index3d(q_windows, k_windows, num_clips):
     return relative_position_index
 
 
+def get_topk_closest_indice(q_windows, k_windows, topk=1):
+    # get pair-wise relative position index for each token inside the window
+    coords_h_q = torch.arange(q_windows[0])
+    coords_w_q = torch.arange(q_windows[1])
+
+    if q_windows[0] != k_windows[0]:
+        factor = k_windows[0] // q_windows[0]
+        coords_h_q = coords_h_q * factor + factor // 2
+        coords_w_q = coords_w_q * factor + factor // 2
+    else:
+        factor = 1
+
+    coords_q = torch.stack(torch.meshgrid([coords_h_q, coords_w_q]))  # 2, Wh_q, Ww_q
+
+    coords_h_k = torch.arange(k_windows[0])
+    coords_w_k = torch.arange(k_windows[1])
+    coords_k = torch.stack(torch.meshgrid([coords_h_k, coords_w_k]))  # 2, Wh, Ww
+
+    coords_flatten_q = torch.flatten(coords_q, 1)  # 2, Wh_q*Ww_q
+    coords_flatten_k = torch.flatten(coords_k, 1)  # 2, Wh_k*Ww_k
+
+    relative_coords = coords_flatten_q[:, :, None] - coords_flatten_k[:, None, :]  # 2, Wh_q*Ww_q, Wh_k*Ww_k
+
+    relative_position_dists = torch.sqrt(relative_coords[0].float() ** 2 + relative_coords[1].float() ** 2)
+
+    topk = min(topk, relative_position_dists.shape[1])
+    topk_score_k, topk_index_k = torch.topk(-relative_position_dists, topk, dim=1)  # B, topK, nHeads
+    indice_topk = topk_index_k
+    relative_coord_topk = torch.gather(relative_coords, 2, indice_topk.unsqueeze(0).repeat(2, 1, 1))
+    return indice_topk, relative_coord_topk.permute(1, 2, 0).contiguous().float(), topk
+
 class WindowAttention3d3(nn.Module):
     r""" Window based multi-head self attention (W-MSA) module with relative position bias.
     It supports both of shifted and non-shifted window.
