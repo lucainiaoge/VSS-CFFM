@@ -845,7 +845,7 @@ class CffmTransformerBlock3d3(nn.Module):
             window_size_glo=to_2tuple(self.window_size_glo), focal_window=focal_window,
             focal_level=self.focal_level, num_heads=num_heads,
             qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop,
-            pool_method=pool_method, focal_l_clips=focal_l_clips, focal_kernel_clips=focal_kernel_clips, topK=topK,)
+            pool_method=pool_method, focal_l_clips=focal_l_clips, focal_kernel_clips=focal_kernel_clips, topK=64)
 
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         self.norm2 = norm_layer(dim)
