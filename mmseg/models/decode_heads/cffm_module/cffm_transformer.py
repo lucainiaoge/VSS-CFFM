@@ -341,6 +341,8 @@ class WindowAttention3d3(nn.Module):
         q, k, v = qkv[0], qkv[1], qkv[2]  # B0, nH, nW, C
 
         # partition q map
+        print("window partition q size,", q.shape)
+        print("window partition window size,", self.window_size[0])
         q_windows = window_partition(q, self.window_size[0]).view(
             -1, self.window_size[0] * self.window_size[0], self.num_heads, C // self.num_heads
         ).transpose(1, 2)
