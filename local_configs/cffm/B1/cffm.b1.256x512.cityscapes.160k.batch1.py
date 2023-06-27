@@ -1,6 +1,6 @@
 _base_ = [
     '../../_base_/models/segformer.py',
-    '../../_base_/datasets/cityscapes_512x512_repeat_clips.py',
+    '../../_base_/datasets/cityscapes_256x512_repeat_clips.py',
     '../../_base_/default_runtime.py',
     '../../_base_/schedules/schedule_160k_adamw.py'
 ]
@@ -10,16 +10,16 @@ norm_cfg = dict(type='SyncBN', requires_grad=True)
 find_unused_parameters = True
 model = dict(
     type='EncoderDecoder_clips',
-    pretrained='/cluster/work/cvl/celiuce/video-seg/models/segformer/pretrained_models/mit_b3.pth',
+    pretrained='/cluster/work/cvl/celiuce/video-seg/models/segformer/pretrained_models/mit_b1.pth',
     backbone=dict(
-        type='mit_b3',
+        type='mit_b1',
         style='pytorch'),
     decode_head=dict(
         type='CFFMHead_clips_resize1_8',
         in_channels=[64, 128, 320, 512],
         in_index=[0, 1, 2, 3],
         feature_strides=[4, 8, 16, 32],
-        channels=256,
+        channels=128,
         dropout_ratio=0.1,
         num_classes=19,
         norm_cfg=norm_cfg,

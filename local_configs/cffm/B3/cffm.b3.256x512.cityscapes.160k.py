@@ -1,6 +1,6 @@
 _base_ = [
     '../../_base_/models/segformer.py',
-    '../../_base_/datasets/cityscapes_512x512_repeat_clips.py',
+    '../../_base_/datasets/cityscapes_256x512_repeat_clips.py',
     '../../_base_/default_runtime.py',
     '../../_base_/schedules/schedule_160k_adamw.py'
 ]
@@ -45,5 +45,5 @@ lr_config = dict(_delete_=True, policy='poly',
                  power=1.0, min_lr=0.0, by_epoch=False)
 
 
-data = dict(samples_per_gpu=1)
+data = dict(samples_per_gpu=2)
 evaluation = dict(interval=4000, metric='mIoU')
