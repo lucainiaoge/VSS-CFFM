@@ -571,8 +571,12 @@ class EncoderDecoder_clips(BaseSegmentor):
             seg_pred = seg_pred.unsqueeze(0)
             return seg_pred
         seg_pred = seg_pred.cpu().numpy()
+
+        print("simple_test seg_pred shape:", seg_pred.shape) #debug
+
         # unravel batch dim
         seg_pred = list(seg_pred)
+
         return seg_pred
 
     def aug_test(self, imgs, img_metas, rescale=True):
@@ -590,6 +594,9 @@ class EncoderDecoder_clips(BaseSegmentor):
         seg_logit /= len(imgs)
         seg_pred = seg_logit.argmax(dim=1)
         seg_pred = seg_pred.cpu().numpy()
+
+        print("aug_test seg_pred shape:", seg_pred.shape) #debug
+
         # unravel batch dim
         seg_pred = list(seg_pred)
         return seg_pred

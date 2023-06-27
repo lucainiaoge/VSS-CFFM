@@ -211,6 +211,10 @@ def total_intersect_and_union(results,
     evaluator = Evaluator(num_classes)
     evaluator.reset()
     for i in range(num_imgs):
+
+        print("total_intersect_and_union pred shape", results[i].shape)
+
+
         area_intersect, area_union, area_pred_label, area_label = \
             intersect_and_union2(results[i], gt_seg_maps[i], num_classes,
                                 ignore_index, label_map, reduce_zero_label, evaluator)
