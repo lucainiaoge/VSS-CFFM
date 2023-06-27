@@ -565,6 +565,9 @@ class EncoderDecoder_clips(BaseSegmentor):
         img=img.reshape(batch_size*num_clips, -1, h,w)
         # exit()
         seg_logit = self.inference(img, img_meta, rescale, batch_size, num_clips)
+
+        print("simple_test seg_logit shape:", seg_logit.shape) #debug
+        
         seg_pred = seg_logit.argmax(dim=1)
         if torch.onnx.is_in_onnx_export():
             # our inference backend only support 4D output
@@ -594,8 +597,6 @@ class EncoderDecoder_clips(BaseSegmentor):
         seg_logit /= len(imgs)
         seg_pred = seg_logit.argmax(dim=1)
         seg_pred = seg_pred.cpu().numpy()
-
-        print("aug_test seg_pred shape:", seg_pred.shape) #debug
 
         # unravel batch dim
         seg_pred = list(seg_pred)
