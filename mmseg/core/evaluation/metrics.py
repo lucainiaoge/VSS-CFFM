@@ -42,6 +42,7 @@ class Evaluator(object):
     def _generate_matrix(self, gt_image, pre_image):
         mask = (gt_image >= 0) & (gt_image < self.num_class)
         print(mask)
+        print(gt_image)
         print(gt_image.shape)
         print(gt_image[mask])
         label = self.num_class * gt_image[mask].astype('int') + pre_image[mask]
