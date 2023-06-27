@@ -687,7 +687,7 @@ class BaseDecodeHead_clips_flow(nn.Module, metaclass=ABCMeta):
             dict[str, Tensor]: a dictionary of loss components
         """
         seg_logits = self.forward(inputs,batch_size, num_clips,img)
-        print("forward_train logit shape", seg_logits.shape)
+        # print("forward_train logit shape", seg_logits.shape)
         losses = self.losses(seg_logits, gt_semantic_seg)
         return losses
 
@@ -707,7 +707,7 @@ class BaseDecodeHead_clips_flow(nn.Module, metaclass=ABCMeta):
             Tensor: Output segmentation map.
         """
         logit = self.forward(inputs, batch_size, num_clips,img)
-        print("forward_test logit shape", logit.shape)
+        # print("forward_test logit shape", logit.shape)
         return logit
 
     def cls_seg(self, feat):
