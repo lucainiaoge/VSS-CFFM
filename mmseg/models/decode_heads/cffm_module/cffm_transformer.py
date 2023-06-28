@@ -924,8 +924,12 @@ class CffmTransformerBlock3d3(nn.Module):
 
     def forward(self, x):
         H0, W0 = self.input_resolution
+        print("self.input_resolution", self.input_resolution)
+
         # B, L, C = x.shape
         B0, D0, H0, W0, C = x.shape
+        print("x.shape", x.shape)
+
         shortcut = x
         # assert L == H * W, "input feature has wrong size"
         x=x.reshape(B0*D0,H0,W0,C).reshape(B0*D0,H0*W0,C)
@@ -944,6 +948,7 @@ class CffmTransformerBlock3d3(nn.Module):
             x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
         
         B, H, W, C = x.shape     ## B=B0*D0
+        print("x.shape after padding", x.shape)
 
         if self.shift_size > 0:
             shifted_x = torch.roll(x, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2))
