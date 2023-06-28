@@ -1084,8 +1084,8 @@ class CffmTransformerBlock3d3(nn.Module):
             x = torch.roll(shifted_x, shifts=(self.shift_size, self.shift_size), dims=(1, 2))
         else:
             x = shifted_x
-        # x = x[:, :self.input_resolution[0], :self.input_resolution[1]].contiguous().view(B, -1, C)
-        x = x.view(B0, H0 * W0, C)
+        x = x[:, :self.input_resolution[0], :self.input_resolution[1]].contiguous().view(B, -1, C)
+        # x = x.view(B0, H0 * W0, C)
 
         # FFN
         # x = shortcut + self.drop_path(x if (not self.use_layerscale) else (self.gamma_1 * x))
