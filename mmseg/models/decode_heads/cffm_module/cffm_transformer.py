@@ -415,7 +415,6 @@ class WindowAttention3d3(nn.Module):
         window_area_whole = k_all.shape[2]
 
         print("attn.shape", attn.shape)
-        asd
 
         topk_rpb_cat = torch.cat(topk_rpbs, 2).permute(0, 3, 1, 2).contiguous().unsqueeze(0).repeat(B, 1, 1, 1, 1).view(
             attn.shape)
