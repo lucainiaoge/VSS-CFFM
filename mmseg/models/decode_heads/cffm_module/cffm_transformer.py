@@ -880,7 +880,7 @@ class CffmTransformerBlock3d3(nn.Module):
         #     qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop, pool_method=pool_method, focal_l_clips=focal_l_clips, focal_kernel_clips=focal_kernel_clips)
 
         self.attn = WindowAttention3d3(
-            dim, input_resolution=input_resolution, expand_size=self.expand_size, shift_size=self.shift_size, window_size=to_2tuple(self.window_size),
+            dim, input_resolution=(35, 70), expand_size=self.expand_size, shift_size=self.shift_size, window_size=to_2tuple(self.window_size),
             window_size_glo=to_2tuple(self.window_size_glo), focal_window=focal_window,
             focal_level=self.focal_level, num_heads=num_heads,
             qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop,
