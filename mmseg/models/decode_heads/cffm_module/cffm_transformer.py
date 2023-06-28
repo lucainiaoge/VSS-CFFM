@@ -416,7 +416,7 @@ class WindowAttention3d3(nn.Module):
 
         print("attn.shape", attn.shape)
 
-        topk_rpb_cat = torch.cat(topk_rpbs, 2).permute(0, 3, 1, 2).contiguous().unsqueeze(0).repeat(B, 1, 1, 1, 1).view(
+        topk_rpb_cat = torch.cat(topk_rpbs, 2).permute(0, 3, 1, 2).contiguous().unsqueeze(0).repeat(B0, 1, 1, 1, 1).view(
             attn.shape)
         attn = attn + topk_rpb_cat
 
