@@ -1084,7 +1084,7 @@ class CffmTransformerBlock3d3(nn.Module):
             x = torch.roll(shifted_x, shifts=(self.shift_size, self.shift_size), dims=(1, 2))
         else:
             x = shifted_x
-        x = x[:, :self.input_resolution[0], :self.input_resolution[1]].contiguous().view(B, -1, C)
+        x = x[:, :H0, :W0].contiguous().view(B0, -1, C)
         # x = x.view(B0, H0 * W0, C)
 
         # FFN
@@ -1092,7 +1092,9 @@ class CffmTransformerBlock3d3(nn.Module):
         # x = x + self.drop_path(self.mlp(self.norm2(x)) if (not self.use_layerscale) else (self.gamma_2 * self.mlp(self.norm2(x))))
 
         # print(x.shape, shortcut[:,-1].view(B0, -1, C).shape)
-        x = shortcut[:,-1].view(B0, -1, C) + self.drop_path(x if (not self.use_layerscale) else (self.gamma_1 * x))
+        print("shortcut[:,-1].shape", shortcut[:,-1].shape)
+        print("x.shape", x.shape)
+        x = shortcut[:, -1].view(B0, -1, C) + self.drop_path(x if (not self.use_layerscale) else (self.gamma_1 * x))
         x = x + self.drop_path(self.mlp(self.norm2(x)) if (not self.use_layerscale) else (self.gamma_2 * self.mlp(self.norm2(x))))
 
         # x=torch.cat([shortcut[:,:-1],x.view(B0,self.input_resolution[0],self.input_resolution[1],C).unsqueeze(1)],1)
