@@ -331,6 +331,34 @@ class WindowAttention3d3(nn.Module):
                 nn.Linear(head_dim, self.num_heads)
             )
             self.coord2rpb_all.append(coord2rpb)
+        #
+        # for k in range(self.focal_l_clips):
+        #     if k == 0:
+        #         range_h = self.input_resolution[0]
+        #         range_w = self.input_resolution[1]
+        #     else:
+        #         range_h = self.nWh
+        #         range_w = self.nWw
+        #
+        #     # build relative position range
+        #     topk_closest_indice, topk_closest_coord, topK_updated = get_topk_closest_indice(
+        #         (self.nWh, self.nWw), (range_h, range_w), self.topK)
+        #     self.topks.append(topK_updated)
+        #
+        #     if k > 0:
+        #         # scaling the coordinates for pooled windows
+        #         topk_closest_coord = topk_closest_coord * self.window_size[0]
+        #     topk_closest_coord_window = topk_closest_coord.unsqueeze(1) + coords_window.view(-1, 2)[None, :, None, :]
+        #
+        #     self.register_buffer("topk_cloest_indice_{}".format(k), topk_closest_indice)
+        #     self.register_buffer("topk_cloest_coords_{}".format(k), topk_closest_coord_window)
+        #
+        #     coord2rpb = nn.Sequential(
+        #         nn.Linear(2, head_dim),
+        #         nn.ReLU(inplace=True),
+        #         nn.Linear(head_dim, self.num_heads)
+        #     )
+        #     self.coord2rpb_all.append(coord2rpb)
 
     def forward(self, x_all, mask_all=None, batch_size=None, num_clips=None):
         """
@@ -347,8 +375,8 @@ class WindowAttention3d3(nn.Module):
         q, k, v = qkv[0], qkv[1], qkv[2]  # B0, nH, nW, C
 
         # partition q map
-        print("window partition q size,", q.shape)
-        print("window partition window size,", self.window_size[0])
+        # print("window partition q size,", q.shape)
+        # print("window partition window size,", self.window_size[0])
         q_windows = window_partition(q, self.window_size[0]).view(
             -1, self.window_size[0] * self.window_size[0], self.num_heads, C // self.num_heads
         ).transpose(1, 2)
@@ -359,10 +387,10 @@ class WindowAttention3d3(nn.Module):
         topk_rpbs = []
         for l_k in range(self.focal_level):
             topk_closest_indice = getattr(self, "topk_cloest_indice_{}".format(l_k))
-            print("topk_closest_indice.shape", topk_closest_indice.shape)
+            # print("topk_closest_indice.shape", topk_closest_indice.shape)
 
             topk_indice_k = topk_closest_indice.view(1, -1).repeat(B0, 1)
-            print("topk_indice_k.shape", topk_indice_k.shape)
+            # print("topk_indice_k.shape", topk_indice_k.shape)
 
             topk_coords_k = getattr(self, "topk_cloest_coords_{}".format(l_k))
             window_coords = getattr(self, "window_coords")
@@ -383,20 +411,24 @@ class WindowAttention3d3(nn.Module):
             v_k_selected = torch.gather(v_k, 1, topk_indice_k.view(B0, -1, 1).unsqueeze(-1).repeat(1, 1, self.num_heads,
                                                                                                   C // self.num_heads))
 
-            print("k_k_selected.shape after gather", k_k_selected.shape)
+            # print("k_k_selected.shape after gather", k_k_selected.shape)
 
             k_k_selected = k_k_selected.view(
                 (B0,) + topk_closest_indice.shape + (self.num_heads, C // self.num_heads,)).transpose(2, 3)
             v_k_selected = v_k_selected.view(
                 (B0,) + topk_closest_indice.shape + (self.num_heads, C // self.num_heads,)).transpose(2, 3)
 
-            print("k_k_selected.shape second", k_k_selected.shape)
+            # print("k_k_selected.shape second", k_k_selected.shape)
 
             k_all.append(k_k_selected.view(-1, self.num_heads, topk_closest_indice.shape[1], C // self.num_heads))
             v_all.append(v_k_selected.view(-1, self.num_heads, topk_closest_indice.shape[1], C // self.num_heads))
             topKs.append(topk_closest_indice.shape[1])
 
-            print("k_k_selected.shape last", k_k_selected.view(-1, self.num_heads, topk_closest_indice.shape[1], C // self.num_heads).shape)
+            # print("k_k_selected.shape last", k_k_selected.view(-1, self.num_heads, topk_closest_indice.shape[1], C // self.num_heads).shape)
+
+        # for k in range(len(self.focal_l_clips)):
+
+
 
         k_all = torch.cat(k_all, 2)
         print("k_all.shape", k_all.shape)
@@ -406,15 +438,15 @@ class WindowAttention3d3(nn.Module):
         N = k_all.shape[-2]
         q_windows = q_windows * self.scale
 
-        print("Before attn!")
-        print("q_windows.shape", q_windows.shape)
-        print("k_all.shape", k_all.shape)
+        # print("Before attn!")
+        # print("q_windows.shape", q_windows.shape)
+        # print("k_all.shape", k_all.shape)
         attn = (q_windows @ k_all.transpose(-2,
                                             -1))  # B*nW, nHead, window_size*window_size, focal_window_size*focal_window_size
         window_area = self.window_size[0] * self.window_size[1]
         window_area_whole = k_all.shape[2]
 
-        print("attn.shape", attn.shape)
+        # print("attn.shape", attn.shape)
 
         topk_rpb_cat = torch.cat(topk_rpbs, 2).permute(0, 3, 1, 2).contiguous().unsqueeze(0).repeat(B0, 1, 1, 1, 1).view(
             attn.shape)
@@ -540,7 +572,7 @@ class WindowAttention3d3(nn.Module):
             for k in range(len(self.focal_l_clips)):
                 focal_l_big_flag=False
                 if self.focal_l_clips[k]>self.window_size[0]:
-                    stride=1
+                    stride = 1
                     focal_l_big_flag=True
                 else:
                     stride = self.focal_l_clips[k]
@@ -551,7 +583,7 @@ class WindowAttention3d3(nn.Module):
                 #     stride=1
                     # padding=0
                 x_window_pooled = x_all[k+1]
-                nWh, nWw = x_window_pooled.shape[1:3] 
+                nWh, nWw = x_window_pooled.shape[1:3]
                 mask = x_window_pooled.new(nWh, nWw).fill_(1)
 
                 # import pdb; pdb.set_trace()
@@ -1011,7 +1043,8 @@ class CffmTransformerBlock3d3(nn.Module):
 
             x_windows_all_clips += [x_windows_all]
             x_window_masks_all_clips += [x_window_masks_all]
-            for k in range(len(self.focal_l_clips)):     
+            for k in range(len(self.focal_l_clips)):
+                print("self.focal_l_clips", self.focal_l_clips)
                 # window_size_glo = math.floor(self.window_size_glo / (2 ** k))
                 # pooled_h = math.ceil(H / self.window_size) * (2 ** k)
                 # pooled_w = math.ceil(W / self.window_size) * (2 ** k)
@@ -1069,6 +1102,9 @@ class CffmTransformerBlock3d3(nn.Module):
                 # print(x_windows_pooled.shape)
                 x_window_masks_all_clips += [None]
                 # pooling_index=pooling_index+1
+        for i in range(len(x_windows_all_clips)):
+            print("x_windows_all_clips idx", i)
+            print(x_windows_all_clips[i].shape)
         # exit()
         
         attn_windows = self.attn(x_windows_all_clips, mask_all=x_window_masks_all_clips, batch_size=B0, num_clips=D0)  # nW*B0, window_size*window_size, C
@@ -1092,8 +1128,8 @@ class CffmTransformerBlock3d3(nn.Module):
         # x = x + self.drop_path(self.mlp(self.norm2(x)) if (not self.use_layerscale) else (self.gamma_2 * self.mlp(self.norm2(x))))
 
         # print(x.shape, shortcut[:,-1].view(B0, -1, C).shape)
-        print("shortcut[:,-1].shape", shortcut[:,-1].shape)
-        print("x.shape", x.shape)
+        # print("shortcut[:,-1].shape", shortcut[:,-1].shape)
+        # print("x.shape", x.shape)
         x = shortcut[:, -1].view(B0, -1, C) + self.drop_path(x if (not self.use_layerscale) else (self.gamma_1 * x))
         x = x + self.drop_path(self.mlp(self.norm2(x)) if (not self.use_layerscale) else (self.gamma_2 * self.mlp(self.norm2(x))))
 
