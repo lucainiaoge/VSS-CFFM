@@ -431,7 +431,7 @@ class WindowAttention3d3(nn.Module):
 
 
         k_all = torch.cat(k_all, 2)
-        print("k_all.shape", k_all.shape)
+        # print("k_all.shape", k_all.shape)
 
         v_all = torch.cat(v_all, 2)
 
@@ -955,11 +955,11 @@ class CffmTransformerBlock3d3(nn.Module):
 
     def forward(self, x):
         H0, W0 = self.input_resolution
-        print("self.input_resolution", self.input_resolution)
+        # print("self.input_resolution", self.input_resolution)
 
         # B, L, C = x.shape
         B0, D0, H0, W0, C = x.shape
-        print("x.shape", x.shape)
+        # print("x.shape", x.shape)
 
         shortcut = x
         # assert L == H * W, "input feature has wrong size"
@@ -979,7 +979,7 @@ class CffmTransformerBlock3d3(nn.Module):
             x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
         
         B, H, W, C = x.shape     ## B=B0*D0
-        print("x.shape after padding", x.shape)
+        # print("x.shape after padding", x.shape)
 
         if self.shift_size > 0:
             shifted_x = torch.roll(x, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2))
@@ -996,6 +996,7 @@ class CffmTransformerBlock3d3(nn.Module):
         if self.focal_level > 1 and self.pool_method != "none": 
             # if we add coarser granularity and the pool method is not none
             # pooling_index=0
+            print("self.focal_level", self.focal_level)
             for k in range(self.focal_level-1):     
                 window_size_glo = math.floor(self.window_size_glo / (2 ** k))
                 pooled_h = math.ceil(H / self.window_size) * (2 ** k)
@@ -1043,8 +1044,8 @@ class CffmTransformerBlock3d3(nn.Module):
 
             x_windows_all_clips += [x_windows_all]
             x_window_masks_all_clips += [x_window_masks_all]
+            print("self.focal_l_clips", self.focal_l_clips)
             for k in range(len(self.focal_l_clips)):
-                print("self.focal_l_clips", self.focal_l_clips)
                 # window_size_glo = math.floor(self.window_size_glo / (2 ** k))
                 # pooled_h = math.ceil(H / self.window_size) * (2 ** k)
                 # pooled_w = math.ceil(W / self.window_size) * (2 ** k)
@@ -1103,8 +1104,11 @@ class CffmTransformerBlock3d3(nn.Module):
                 x_window_masks_all_clips += [None]
                 # pooling_index=pooling_index+1
         for i in range(len(x_windows_all_clips)):
+            if i ==0:
+                continue
             print("x_windows_all_clips idx", i)
             print(x_windows_all_clips[i].shape)
+
         # exit()
         
         attn_windows = self.attn(x_windows_all_clips, mask_all=x_window_masks_all_clips, batch_size=B0, num_clips=D0)  # nW*B0, window_size*window_size, C
