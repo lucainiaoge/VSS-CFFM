@@ -1044,7 +1044,7 @@ class CffmTransformerBlock3d3(nn.Module):
 
             x_windows_all_clips += [x_windows_all]
             x_window_masks_all_clips += [x_window_masks_all]
-            print("self.focal_l_clips", self.focal_l_clips)
+            # print("self.focal_l_clips", self.focal_l_clips)
             for k in range(len(self.focal_l_clips)):
                 # window_size_glo = math.floor(self.window_size_glo / (2 ** k))
                 # pooled_h = math.ceil(H / self.window_size) * (2 ** k)
@@ -1104,8 +1104,10 @@ class CffmTransformerBlock3d3(nn.Module):
                 x_window_masks_all_clips += [None]
                 # pooling_index=pooling_index+1
         for i in range(len(x_windows_all_clips)):
-            if i ==0:
-                continue
+            if i == 0:
+                for j, k in enumerate(x_windows_all_clips[0]):
+                    print("focal idx", j)
+                    print(k.shape)
             print("x_windows_all_clips idx", i)
             print(x_windows_all_clips[i].shape)
 
