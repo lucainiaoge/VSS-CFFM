@@ -1108,6 +1108,7 @@ class CffmTransformerBlock3d3(nn.Module):
                 for j, k in enumerate(x_windows_all_clips[0]):
                     print("focal idx", j)
                     print(k.shape)
+                continue
             print("x_windows_all_clips idx", i)
             print(x_windows_all_clips[i].shape)
 
