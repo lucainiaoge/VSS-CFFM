@@ -361,7 +361,7 @@ class EncoderDecoder_clips(BaseSegmentor):
     def extract_feat(self, img):
         """Extract features from images."""
 
-        print_log(img.shape)
+        # print_log(img.shape)
         
         x = self.backbone(img)
         if self.with_neck:

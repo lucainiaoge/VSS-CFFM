@@ -996,7 +996,7 @@ class CffmTransformerBlock3d3(nn.Module):
         if self.focal_level > 1 and self.pool_method != "none": 
             # if we add coarser granularity and the pool method is not none
             # pooling_index=0
-            print("self.focal_level", self.focal_level)
+            # print("self.focal_level", self.focal_level)
             for k in range(self.focal_level-1):     
                 window_size_glo = math.floor(self.window_size_glo / (2 ** k))
                 pooled_h = math.ceil(H / self.window_size) * (2 ** k)
