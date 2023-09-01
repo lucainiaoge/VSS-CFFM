@@ -10,12 +10,13 @@ norm_cfg = dict(type='SyncBN', requires_grad=True)
 find_unused_parameters = True
 model = dict(
     type='EncoderDecoder_clips',
-    pretrained='/cluster/work/cvl/celiuce/video-seg/models/segformer/pretrained_models/mit_b1.pth',
+    pretrained='/cluster/work/cvl/celiuce/video-seg/models/segformer/pretrained_models/mit_b2.pth',
     backbone=dict(
-        type='mit_b1',
+        type='mit_b2',
         style='pytorch'),
     decode_head=dict(
         type='CFFMHead_clips_resize1_8',
+        # type='MLPHead',
         in_channels=[64, 128, 320, 512],
         in_index=[0, 1, 2, 3],
         feature_strides=[4, 8, 16, 32],
